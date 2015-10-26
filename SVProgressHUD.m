@@ -8,7 +8,14 @@
 //
 
 #import "SVProgressHUD.h"
+#import <AvailabilityMacros.h>
 #import <QuartzCore/QuartzCore.h>
+
+enum {
+    SVProgressHUDMaskTypeNone = 1
+};
+
+typedef NSUInteger SVProgressHUDMaskType;
 
 @interface SVProgressHUD ()
 
@@ -53,76 +60,14 @@
     return sharedView;
 }
 
-
-+ (void)setStatus:(NSString *)string {
-	[[SVProgressHUD sharedView] setStatus:string];
-}
-
-#pragma mark - Show Methods
-
-+ (void)show {
+#pragma mark - Methods
++ (void)progressHUDWithString:(NSString *)string{
+    
     [[SVProgressHUD sharedView] showWithStatus:nil maskType:SVProgressHUDMaskTypeNone networkIndicator:NO];
-}
-
-+ (void)showWithStatus:(NSString *)status {
-    [[SVProgressHUD sharedView] showWithStatus:status maskType:SVProgressHUDMaskTypeNone networkIndicator:NO];
-}
-
-+ (void)showWithMaskType:(SVProgressHUDMaskType)maskType {
-    [[SVProgressHUD sharedView] showWithStatus:nil maskType:maskType networkIndicator:NO];
-}
-
-+ (void)showWithStatus:(NSString*)status maskType:(SVProgressHUDMaskType)maskType {
-    [[SVProgressHUD sharedView] showWithStatus:status maskType:maskType networkIndicator:NO];
-}
-
-+ (void)showSuccessWithStatus:(NSString *)string {
-    [SVProgressHUD showSuccessWithStatus:string duration:1];
-}
-
-+ (void)showSuccessWithStatus:(NSString *)string duration:(NSTimeInterval)duration {
-    [SVProgressHUD show];
-    [SVProgressHUD dismissWithSuccess:string afterDelay:duration];
-}
-
-+ (void)showErrorWithStatus:(NSString *)string {
-    [SVProgressHUD showErrorWithStatus:string duration:1];
-}
-
-+ (void)showErrorWithStatus:(NSString *)string duration:(NSTimeInterval)duration {
-    [SVProgressHUD show];
-    [SVProgressHUD dismissWithError:string afterDelay:duration];
-}
-
-
-#pragma mark - Dismiss Methods
-
-+ (void)dismiss {
-	[[SVProgressHUD sharedView] dismiss];
-}
-
-+ (void)dismissWithSuccess:(NSString*)successString {
-	[[SVProgressHUD sharedView] dismissWithStatus:successString error:NO];
-}
-
-+ (void)dismissWithSuccess:(NSString *)successString afterDelay:(NSTimeInterval)seconds {
-    [[SVProgressHUD sharedView] dismissWithStatus:successString error:NO afterDelay:seconds];
-}
-
-+ (void)dismissWithError:(NSString*)errorString {
-	[[SVProgressHUD sharedView] dismissWithStatus:errorString error:YES];
-}
-
-+ (void)dismissWithError:(NSString *)errorString afterDelay:(NSTimeInterval)seconds {
-    [[SVProgressHUD sharedView] dismissWithStatus:errorString error:YES afterDelay:seconds];
-}
-
-+ (void)dismissWithString:(NSString *)string{
     [[SVProgressHUD sharedView] dismissWithStatus:string error:NO];
 }
 
 #pragma mark - Instance Methods
-
 - (id)initWithFrame:(CGRect)frame {
 	
     if ((self = [super initWithFrame:frame])) {
@@ -135,37 +80,6 @@
     return self;
 }
 
-- (void)drawRect:(CGRect)rect {
-    
-    CGContextRef context = UIGraphicsGetCurrentContext();
-    
-    switch (self.maskType) {
-            
-        case SVProgressHUDMaskTypeBlack: {
-            [[UIColor colorWithWhite:0 alpha:0.5] set];
-            CGContextFillRect(context, self.bounds);
-            break;
-        }
-            
-        case SVProgressHUDMaskTypeGradient: {
-            
-            size_t locationsCount = 2;
-            CGFloat locations[2] = {0.0f, 1.0f};
-            CGFloat colors[8] = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.75f}; 
-            CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-            CGGradientRef gradient = CGGradientCreateWithColorComponents(colorSpace, colors, locations, locationsCount);
-            CGColorSpaceRelease(colorSpace);
-            
-            CGPoint center = CGPointMake(self.bounds.size.width/2, self.bounds.size.height/2);
-            float radius = MIN(self.bounds.size.width , self.bounds.size.height) ;
-            CGContextDrawRadialGradient (context, gradient, center, 0, center, radius, kCGGradientDrawsAfterEndLocation);
-            CGGradientRelease(gradient);
-            
-            break;
-        }
-    }
-}
-
 - (void)setStatus:(NSString *)string {
 	
     CGFloat hudWidth = 100;
@@ -175,7 +89,9 @@
     CGRect labelRect = CGRectZero;
     
     if(string) {
-        CGSize stringSize = [string sizeWithFont:self.stringLabel.font constrainedToSize:CGSizeMake(200, 300)];
+        
+        CGSize stringSize = [string boundingRectWithSize:CGSizeMake(200, 300) options:NSStringDrawingUsesLineFragmentOrigin | NSStringDrawingUsesFontLeading attributes:@{NSFontAttributeName:self.stringLabel.font} context:nil].size;
+        
         stringWidth = stringSize.width;
         stringHeight = stringSize.height;
         hudHeight = 40+stringHeight;
@@ -193,19 +109,10 @@
     }
 
 	self.hudView.bounds = CGRectMake(0, 0, hudWidth, hudHeight);
-	
-//    if(string)
-//        self.imageView.center = CGPointMake(CGRectGetWidth(self.hudView.bounds)/2, 36);
-//	else
-//       	self.imageView.center = CGPointMake(CGRectGetWidth(self.hudView.bounds)/2, CGRectGetHeight(self.hudView.bounds)/2);
 	self.stringLabel.hidden = NO;
 	self.stringLabel.text = string;
 	self.stringLabel.frame = labelRect;
     self.stringLabel.font = [UIFont systemFontOfSize:12];
-//	if(string)
-//		self.spinnerView.center = CGPointMake(ceil(CGRectGetWidth(self.hudView.bounds)/2)+0.5, 40.5);
-//	else
-//		self.spinnerView.center = CGPointMake(ceil(CGRectGetWidth(self.hudView.bounds)/2)+0.5, ceil(self.hudView.bounds.size.height/2)+0.5);
 }
 
 - (void)setFadeOutTimer:(NSTimer *)newTimer {
@@ -343,7 +250,6 @@
         self.imageView.hidden = YES;
         self.maskType = hudMaskType;
         [self setStatus:string];
-//        [self.spinnerView startAnimating];
         
         if(self.maskType != SVProgressHUDMaskTypeNone) {
             self.overlayWindow.userInteractionEnabled = YES;
@@ -377,20 +283,11 @@
 	[self dismissWithStatus:string error:error afterDelay:0.9];
 }
 
-
 - (void)dismissWithStatus:(NSString *)string error:(BOOL)error afterDelay:(NSTimeInterval)seconds {
     dispatch_async(dispatch_get_main_queue(), ^{
         if(self.alpha != 1)
             return;
-        
-//        if(error)
-//            self.imageView.image = [UIImage imageNamed:@"SVProgressHUD.bundle/error.png"];
-//        else
-//            self.imageView.image = [UIImage imageNamed:@"SVProgressHUD.bundle/success.png"];
-//        self.imageView.hidden = NO;
         [self setStatus:string];
-//        [self.spinnerView stopAnimating];
-        
         self.fadeOutTimer = [NSTimer scheduledTimerWithTimeInterval:seconds target:self selector:@selector(dismiss) userInfo:nil repeats:NO];
     });
 }
@@ -423,21 +320,10 @@
                                      *stop = YES;
                                    }
                                  }];
-                                 
-                                 // uncomment to make sure UIWindow is gone from app.windows
-                                 //NSLog(@"%@", [UIApplication sharedApplication].windows);
-                                 //NSLog(@"keyWindow = %@", [UIApplication sharedApplication].keyWindow);
                              }
                          }];
     });
 }
-
-#pragma mark - Utilities
-
-+ (BOOL)isVisible {
-    return ([SVProgressHUD sharedView].alpha == 1);
-}
-
 
 #pragma mark - Getters
 
