@@ -1,8 +1,10 @@
 # SVProgressHUD
-基于SVProgressHUD的修改 加载时去掉指示器
+基于SVProgressHUD的修改
 
-直接调用下面这两个方法
-  
-  [SVProgressHUD show];
-  
-  [SVProgressHUD dismissWithString:content];
+/**
+ *  在窗口上显示文字，0.9秒后消失
+ *
+ *  @param string 要显示的文字
+ */
++ (void)progressHUDWithString:(NSString *)string;
+
